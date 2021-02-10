@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {- if .CSS }
+        <style>
+            {.CSS | safeCSS}
+        </style>
+        {- end }
+        <title>{{.Prompt}}</title>
+    </head>
+    <body>
+        <form method="POST">
+            <label for="input">{{.Prompt}}</label>
+            {{ if .Secret }}
+            <input type="password" id="input" name="q" />
+            {{ else }}
+            <input type="text" id="input" name="q" />
+            {{ end }}
+        </form>
+    </body>
+</html>
