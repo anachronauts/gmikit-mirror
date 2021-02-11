@@ -6,19 +6,19 @@ GMIKITCONFDIR := $(SYSCONFDIR)/gmikit
 BINDIR := $(PREFIX)/bin
 SBINDIR := $(PREFIX)/sbin
 BINPREFIX := gmikit-
-GOFLAGS :=
+EXTRAGOLDFLAGS :=
 
 all: convert gateway get
 
 convert: FORCE
-	go build $(GOFLAGS) -o $@ anachronauts.club/repos/gmikit/cmd/convert
+	go build -ldflags="$(EXTRAGOLDFLAGS)" -o $@ anachronauts.club/repos/gmikit/cmd/convert
 
 gateway: FORCE
 	go generate anachronauts.club/repos/gmikit/cmd/gateway/templates
-	go build $(GOFLAGS) -ldflags "-X main.confDir=$(GMIKITCONFDIR)" -o $@ anachronauts.club/repos/gmikit/cmd/gateway
+	go build -ldflags="$(EXTRAGOLDFLAGS) -X main.confDir=$(GMIKITCONFDIR)" -o $@ anachronauts.club/repos/gmikit/cmd/gateway
 
 get: FORCE
-	go build $(GOFLAGS) -o $@ anachronauts.club/repos/gmikit/cmd/get
+	go build -ldflags="$(EXTRAGOLDFLAGS)" -o $@ anachronauts.club/repos/gmikit/cmd/get
 
 install: all
 	install -d $(BINDIR) $(SBINDIR) $(GMIKITCONFDIR)
