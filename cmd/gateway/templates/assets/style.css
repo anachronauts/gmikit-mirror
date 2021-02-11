@@ -3,7 +3,7 @@ html {
 	background-color: {{ .Light.Background }};
 	color: {{ .Light.Paragraph }};
 	border-top: 1rem solid {{ .Light.BannerBackground }};
-	line-height: 1.2;
+	line-height: 1.3;
 }
 
 body {
@@ -26,7 +26,7 @@ h2 {
 	margin: 0;
 }
 
-h1 {
+h3 {
 	color: {{ .Light.Heading3 }};
 	margin: 0;
 }
@@ -54,7 +54,7 @@ li {
 }
 
 li:not(:last-child) {
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
 }
 
 a {
@@ -110,7 +110,7 @@ pre {
 
 details:not([open]) summary,
 details:not([open]) summary a {
-	color: {{ .Light.InlineContentMetadata }};
+	color: {{ .Light.QuoteIcon }};
 }
 
 details a::before {
@@ -172,7 +172,7 @@ dl dt:not(:first-child) {
 
 	details:not([open]) summary,
 	details:not([open]) summary a {
-		color: {{ .Dark.InlineContentMetadata }};
+		color: {{ .Dark.QuoteIcon }};
 	}
 
 	a {

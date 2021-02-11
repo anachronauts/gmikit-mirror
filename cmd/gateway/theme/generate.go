@@ -2,7 +2,6 @@ package theme
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/chewxy/math32"
 )
@@ -69,17 +68,12 @@ func getSeed(name string) uint32 {
 
 func NewWhiteTheme(name string) *Theme {
 	t := &Theme{}
-	t.applyLightLinkTheme(&lightPalette)
-	t.applyWhiteTheme(&lightPalette)
 	t.applyWhiteSeed(&lightPalette, getSeed(name))
-	log.Printf("Seed for %s was %x", name, getSeed(name))
 	return t
 }
 
 func NewColorfulDarkTheme(name string) *Theme {
 	t := &Theme{}
-	t.applyDarkLinkTheme(&darkPalette)
-	t.applyColorfulDarkTheme(&darkPalette)
 	t.applyColorfulDarkSeed(&darkPalette, getSeed(name))
 	return t
 }
@@ -90,9 +84,9 @@ type hslColor struct {
 
 func (color Color) toHSL() hslColor {
 	rgb := [3]float32{
-		float32(color.R) / 255,
-		float32(color.G) / 255,
-		float32(color.B) / 255,
+		float32(color.R) / 255.0,
+		float32(color.G) / 255.0,
+		float32(color.B) / 255.0,
 	}
 	var compMax, compMin int
 	if rgb[0] >= rgb[1] && rgb[0] >= rgb[2] {
@@ -105,7 +99,7 @@ func (color Color) toHSL() hslColor {
 	if rgb[0] <= rgb[1] && rgb[0] <= rgb[2] {
 		compMin = 0
 	} else if rgb[1] <= rgb[0] && rgb[1] <= rgb[2] {
-		compMax = 1
+		compMin = 1
 	} else {
 		compMin = 2
 	}
@@ -167,8 +161,7 @@ func hue2rgb(p, q, t float32) float32 {
 
 func (hsl hslColor) toRGB() Color {
 	var r, g, b float32
-	hsl.Hue /= 360.0
-	hsl.Hue = wrapf01(hsl.Hue)
+	hsl.Hue = wrapf01(hsl.Hue / 360)
 	hsl.Sat = clampf01(hsl.Sat)
 	hsl.Lum = clampf01(hsl.Lum)
 	if hsl.Sat < 0.00001 {
@@ -386,6 +379,7 @@ func (t *Theme) applyLightLinkTheme(p *palette) {
 }
 
 func (t *Theme) applyColorfulDarkTheme(p *palette) {
+	t.applyDarkLinkTheme(p)
 	base := hslColor{200, 0, 0.15}
 	t.colors[tmBackground] = base.toRGB()
 	t.colors[tmParagraph] = p.Gray75
@@ -401,6 +395,7 @@ func (t *Theme) applyColorfulDarkTheme(p *palette) {
 }
 
 func (t *Theme) applyWhiteTheme(p *palette) {
+	t.applyLightLinkTheme(p)
 	base := hslColor{40, 0, 1.0}
 	t.colors[tmBackground] = base.toRGB()
 	t.colors[tmParagraph] = p.Gray25
@@ -455,6 +450,8 @@ var normLum = [12]float32{
 }
 
 func (t *Theme) applyColorfulDarkSeed(p *palette, seed uint32) {
+	t.applyColorfulDarkTheme(p)
+
 	primIndex := 2
 	if seed != 0 {
 		primIndex = int(seed&0xff) % len(hues)
@@ -556,6 +553,8 @@ func (t *Theme) applyColorfulDarkSeed(p *palette, seed uint32) {
 }
 
 func (t *Theme) applyWhiteSeed(p *palette, seed uint32) {
+	t.applyWhiteTheme(p)
+
 	primIndex := 2
 	if seed != 0 {
 		primIndex = int(seed&0xff) % len(hues)
