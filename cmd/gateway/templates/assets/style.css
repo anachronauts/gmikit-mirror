@@ -1,6 +1,9 @@
 html {
 	font-family: sans-serif;
-	color: #080808;
+	background-color: {{ .Light.Background }};
+	color: {{ .Light.Paragraph }};
+	border-top: 1rem solid {{ .Light.BannerBackground }};
+	line-height: 1.2;
 }
 
 body {
@@ -13,7 +16,18 @@ article {
 	margin: 1rem 0;
 }
 
-h1, h2, h3 {
+h1 {
+	color: {{ .Light.Heading1 }};
+	margin: 0;
+}
+
+h2 {
+	color: {{ .Light.Heading2 }};
+	margin: 0;
+}
+
+h1 {
+	color: {{ .Light.Heading3 }};
 	margin: 0;
 }
 
@@ -24,7 +38,9 @@ p, blockquote {
 }
 
 blockquote {
-	border-left: 3px solid #444;
+	color: {{ .Light.Quote }};
+	border-left: 3px solid {{ .Light.QuoteIcon }};
+	font-style: italic;
 	padding: 0 1rem;
 }
 
@@ -37,40 +53,64 @@ li {
 	padding: 0;
 }
 
-/*
 li:not(:last-child) {
 	margin-bottom: 0.5rem;
 }
-*/
+
+a {
+	color: {{ .Light.LinkText }};
+}
+
+a:hover {
+	color: {{ .Light.LinkTextHover }};
+}
 
 a::before {
 	content: '⇒';
 	text-decoration: none;
 	font-weight: bold;
-	color: #999;
+	color: {{ .Light.LinkIcon }};
 	display: inline-block;
 	width: 2rem;
 	margin: -0.5rem 0.25rem -0.5rem -2.25rem;
 	text-align: right;
 }
 
+a:visited::before {
+	color: {{ .Light.LinkIconVisited }};
+}
+
 a.local::before {
 	content: '→';
 }
 
+a.http, a.https {
+	color: {{ .Light.HypertextLinkText }};
+}
+
+a.http:hover, a.https:hover {
+	color: {{ .Light.HypertextLinkTextHover }};
+}
+
 a.http::before, a.https::before {
-	content: '🌐';
+	content: 'Ⓦ';
+	color: {{ .Light.HypertextLinkIcon }};
+}
+
+a.http:visited::before, a.https:visited::before {
+	color: {{ .Light.HypertextLinkIconVisited }};
 }
 
 pre {
 	margin: 0;
 	padding: 0;
 	overflow-x: auto;
+	color: {{ .Light.Preformatted }};
 }
 
 details:not([open]) summary,
 details:not([open]) summary a {
-	color: gray;
+	color: {{ .Light.InlineContentMetadata }};
 }
 
 details a::before {
@@ -102,30 +142,71 @@ dl dt:not(:first-child) {
 	margin-top: 0.5rem;
 }
 
-/*
 @media(prefers-color-scheme:dark) {
 	html {
-		background-color: #111;
-		color: #eee;
+		background-color: {{ .Dark.Background }};
+		color: {{ .Dark.Paragraph }};
+		border-top-color: {{ .Dark.BannerBackground }};
 	}
 
 	blockquote {
-		background-color: #000;
+		color: {{ .Dark.Quote }};
+		border-left-color: {{ .Dark.QuoteIcon }};
 	}
 
 	pre {
-		background-color: #222;
-	}
-	
-	a {
-		color: #0087BD;
+		color: {{ .Dark.Preformatted }};
 	}
 
-	a:visited {
-		color: #333399;
+	h1 {
+		color: {{ .Dark.Heading1 }};
+	}
+
+	h2 {
+		color: {{ .Dark.Heading2 }};
+	}
+
+	h3 {
+		color: {{ .Dark.Heading3 }};
+	}
+
+	details:not([open]) summary,
+	details:not([open]) summary a {
+		color: {{ .Dark.InlineContentMetadata }};
+	}
+
+	a {
+		color: {{ .Dark.LinkText }};
+	}
+
+	a:hover {
+		color: {{ .Dark.LinkTextHover }};
+	}
+
+	a::before {
+		color: {{ .Dark.LinkIcon }};
+	}
+
+	a:visited::before {
+		color: {{ .Dark.LinkIconVisited }};
+	}
+
+	a.http, a.https {
+		color: {{ .Dark.HypertextLinkText }};
+	}
+
+	a.http:hover, a.https:hover {
+		color: {{ .Dark.HypertextLinkTextHover }};
+	}
+
+	a.http::before, a.https::before {
+		color: {{ .Dark.HypertextLinkIcon }};
+	}
+
+	a.http:visited::before, a.https:visited::before {
+		color: {{ .Dark.HypertextLinkIconVisited }};
 	}
 }
-*/
 
 label {
 	display: block;

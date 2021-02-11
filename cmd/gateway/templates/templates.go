@@ -29,8 +29,8 @@ func (u *union) Open(name string) (http.File, error) {
 func LoadFS(path string) http.FileSystem {
 	if path != "" {
 		u := &union{fs: make([]http.FileSystem, 2)}
-		u.fs[0] = Assets
-		u.fs[1] = http.Dir(path)
+		u.fs[0] = http.Dir(path)
+		u.fs[1] = Assets
 		return u
 	} else {
 		return Assets

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"time"
 
 	flag "github.com/spf13/pflag"
 )
@@ -17,8 +18,10 @@ var configFile *string = flag.StringP(
 
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.Method, r.URL.Path)
+		start := time.Now()
 		next.ServeHTTP(w, r)
+		elapsed := time.Since(start)
+		log.Println(r.Method, r.URL.Path, elapsed)
 	})
 }
 
