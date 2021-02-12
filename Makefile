@@ -10,6 +10,8 @@ EXTRAGOLDFLAGS :=
 
 all: convert gateway get
 
+FORCE:
+
 convert: FORCE
 	go build -ldflags="$(EXTRAGOLDFLAGS)" -o $@ anachronauts.club/repos/gmikit/cmd/convert
 
