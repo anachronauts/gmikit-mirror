@@ -27,7 +27,7 @@ install: all
 	install -m 755 convert $(BINDIR)/$(BINPREFIX)convert
 	install -m 755 gateway $(SBINDIR)/$(BINPREFIX)gateway
 	install -m 755 get $(BINDIR)/$(BINPREFIX)get
-	install -m 644 example/gateway.conf $(GMIKITCONFDIR)
+	install -m 644 example/gateway.conf $(GMIKITCONFDIR)/gateway.conf.sample
 
 clean:
 	-rm convert gateway get
