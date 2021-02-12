@@ -4,7 +4,6 @@ import (
 	"fmt"
 	ht "html/template"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -14,20 +13,23 @@ import (
 
 	"anachronauts.club/repos/gmikit"
 	"anachronauts.club/repos/gmikit/cmd/gateway/templates"
+	"go.uber.org/zap"
 )
 
 type Gateway struct {
 	config    *GatewayConfig
+	logger    *zap.SugaredLogger
 	template  *ht.Template
 	rootURL   *url.URL
 	timeout   time.Duration
 	externals map[string]*tt.Template
 }
 
-func NewGateway(config *GatewayConfig) (*Gateway, error) {
+func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, error) {
 	var err error
 	g := &Gateway{
 		config:    config,
+		logger:    logger,
 		timeout:   time.Duration(config.Timeout) * time.Millisecond,
 		externals: make(map[string]*tt.Template),
 	}
@@ -178,7 +180,7 @@ func (g *Gateway) handleSuccess(
 
 	w.Header().Add("Content-Type", "text/html")
 	if err := g.template.ExecuteTemplate(w, "2x.html", rc); err != nil {
-		log.Print(err)
+		g.logger.Errorw("Failed to execute template", "error", err)
 	}
 }
 
