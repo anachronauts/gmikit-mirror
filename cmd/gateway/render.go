@@ -28,9 +28,10 @@ type RenderContext struct {
 type SuccessContext struct {
 	RenderContext
 	gmikit.HtmlWriter
-	Title       string
-	titleLevel  int
-	bodyBuilder *strings.Builder
+	Title        string
+	titleLevel   int
+	bodyBuilder  *strings.Builder
+	imagePattern *regexp.Regexp
 }
 
 type RedirectContext struct {
@@ -90,10 +91,14 @@ func (ctx *RenderContext) TLSNotAfter() time.Time {
 	return ctx.Response.TLS.PeerCertificates[0].NotAfter
 }
 
-func NewSuccessContext(rewriter gmikit.UrlRewriter) *SuccessContext {
+func NewSuccessContext(
+	imagePattern *regexp.Regexp,
+	rewriter gmikit.UrlRewriter,
+) *SuccessContext {
 	ctx := &SuccessContext{
-		titleLevel:  4, // gemini only supports 3 levels
-		bodyBuilder: &strings.Builder{},
+		titleLevel:   4, // gemini only supports 3 levels
+		bodyBuilder:  &strings.Builder{},
+		imagePattern: imagePattern,
 	}
 	ctx.HtmlWriter = *gmikit.NewHtmlWriter(ctx.bodyBuilder, rewriter)
 	return ctx
@@ -125,6 +130,43 @@ func (ctx *SuccessContext) Heading3(text string) error {
 		ctx.titleLevel = 3
 	}
 	return ctx.HtmlWriter.Heading3(text)
+}
+
+var image = template.Must(
+	template.New("image").Parse(
+		"<a href=\"{{.Href}}\" " +
+			"{{ if .Class -}} class=\"{{.Class}}\" {{- end }}>" +
+			"<img alt=\"{{.Text}}\" src=\"{{.Href}}\" />" +
+			"</a><br/>\n"))
+
+func (ctx *SuccessContext) Link(target *url.URL, friendlyName string) error {
+	if ctx.imagePattern.MatchString(target.Path) {
+		err := ctx.Clear()
+		if err != nil {
+			return err
+		}
+
+		class := target.Scheme
+		if ctx.Rewriter != nil {
+			target, class, err = ctx.Rewriter(target)
+			if err != nil {
+				return err
+			}
+		}
+
+		if class == "local" {
+			return image.Execute(ctx, struct {
+				Href  *url.URL
+				Text  string
+				Class string
+			}{
+				Href:  target,
+				Text:  friendlyName,
+				Class: class,
+			})
+		}
+	}
+	return ctx.HtmlWriter.Link(target, friendlyName)
 }
 
 func (ctx *ErrorContext) HTTPFriendly() string {

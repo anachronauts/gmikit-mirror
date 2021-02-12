@@ -22,19 +22,23 @@ const (
 
 type HtmlWriter struct {
 	w        io.Writer
-	rewriter UrlRewriter
+	Rewriter UrlRewriter
 	elem     element
 }
 
 func NewHtmlWriter(w io.Writer, rewriter UrlRewriter) *HtmlWriter {
 	return &HtmlWriter{
 		w:        w,
-		rewriter: rewriter,
+		Rewriter: rewriter,
 		elem:     Clear,
 	}
 }
 
-func (h *HtmlWriter) clear() error {
+func (h *HtmlWriter) Write(p []byte) (n int, err error) {
+	return h.w.Write(p)
+}
+
+func (h *HtmlWriter) Clear() error {
 	var err error
 	switch h.elem {
 	case Pre:
@@ -58,12 +62,12 @@ func (h *HtmlWriter) clear() error {
 func (h *HtmlWriter) Begin() error { return nil }
 
 func (h *HtmlWriter) End() error {
-	return h.clear()
+	return h.Clear()
 }
 
 func (h *HtmlWriter) Text(text string) error {
 	if h.elem != Para {
-		err := h.clear()
+		err := h.Clear()
 		if err != nil {
 			return err
 		}
@@ -86,14 +90,14 @@ var anchor = template.Must(
 			"{{.Text}}</a><br/>\n"))
 
 func (h *HtmlWriter) Link(target *url.URL, friendlyName string) error {
-	err := h.clear()
+	err := h.Clear()
 	if err != nil {
 		return err
 	}
 
-	var class string
-	if h.rewriter != nil {
-		target, class, err = h.rewriter(target)
+	class := target.Scheme
+	if h.Rewriter != nil {
+		target, class, err = h.Rewriter(target)
 		if err != nil {
 			return err
 		}
@@ -122,7 +126,7 @@ var altPre = template.Must(
 
 func (h *HtmlWriter) PreformattingToggle(altText string) error {
 	elem := h.elem
-	err := h.clear()
+	err := h.Clear()
 	if err != nil {
 		return err
 	}
@@ -151,7 +155,7 @@ var h1 = template.Must(
 		Parse("<h1>{{.}}</h1>\n"))
 
 func (h *HtmlWriter) Heading1(text string) error {
-	err := h.clear()
+	err := h.Clear()
 	if err != nil {
 		return err
 	}
@@ -164,7 +168,7 @@ var h2 = template.Must(
 		Parse("<h2>{{.}}</h2>\n"))
 
 func (h *HtmlWriter) Heading2(text string) error {
-	err := h.clear()
+	err := h.Clear()
 	if err != nil {
 		return err
 	}
@@ -177,7 +181,7 @@ var h3 = template.Must(
 		Parse("<h3>{{.}}</h3>\n"))
 
 func (h *HtmlWriter) Heading3(text string) error {
-	err := h.clear()
+	err := h.Clear()
 	if err != nil {
 		return err
 	}
@@ -191,7 +195,7 @@ var li = template.Must(
 
 func (h *HtmlWriter) UnorderedListItem(text string) error {
 	if h.elem != List {
-		err := h.clear()
+		err := h.Clear()
 		if err != nil {
 			return err
 		}
@@ -207,7 +211,7 @@ func (h *HtmlWriter) UnorderedListItem(text string) error {
 
 func (h *HtmlWriter) Quote(text string) error {
 	if h.elem != Quoting {
-		err := h.clear()
+		err := h.Clear()
 		if err != nil {
 			return err
 		}

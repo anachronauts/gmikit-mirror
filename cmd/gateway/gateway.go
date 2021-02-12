@@ -7,6 +7,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	tt "text/template"
 	"time"
@@ -17,12 +18,13 @@ import (
 )
 
 type Gateway struct {
-	config    *GatewayConfig
-	logger    *zap.SugaredLogger
-	template  *ht.Template
-	rootURL   *url.URL
-	timeout   time.Duration
-	externals map[string]*tt.Template
+	config       *GatewayConfig
+	logger       *zap.SugaredLogger
+	template     *ht.Template
+	rootURL      *url.URL
+	timeout      time.Duration
+	imagePattern *regexp.Regexp
+	externals    map[string]*tt.Template
 }
 
 func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, error) {
@@ -48,6 +50,11 @@ func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, err
 	}
 
 	g.template, err = templates.Load(config.Templates)
+	if err != nil {
+		return nil, err
+	}
+
+	g.imagePattern, err = regexp.Compile(config.ImagePattern)
 	if err != nil {
 		return nil, err
 	}
@@ -207,14 +214,16 @@ func (g *Gateway) handleSuccess(
 	}
 
 	// Build render context
-	rc := NewSuccessContext(func(url *url.URL) (*url.URL, string, error) {
-		target, err := g.convertURL(url, r.URL)
-		class := url.Scheme
-		if !url.IsAbs() || url.Host == g.rootURL.Host {
-			class = "local"
-		}
-		return target, class, err
-	})
+	rc := NewSuccessContext(
+		g.imagePattern,
+		func(url *url.URL) (*url.URL, string, error) {
+			target, err := g.convertURL(url, r.URL)
+			class := url.Scheme
+			if !url.IsAbs() || url.Host == g.rootURL.Host {
+				class = "local"
+			}
+			return target, class, err
+		})
 	gmikit.ParseLines(resp.Body, rc)
 	rc.Request = req
 	rc.Response = resp

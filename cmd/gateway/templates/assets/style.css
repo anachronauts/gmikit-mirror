@@ -57,6 +57,11 @@ li:not(:last-child) {
 	margin-bottom: 0.25rem;
 }
 
+img {
+	width: 100%;
+	vertical-align: top;
+}
+
 a {
 	color: {{ .Light.LinkText }};
 }

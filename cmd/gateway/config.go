@@ -10,14 +10,15 @@ import (
 )
 
 type GatewayConfig struct {
-	Bind       string            `toml:"bind"`
-	Root       string            `toml:"root"`
-	Timeout    int64             `toml:"timeout"`
-	Templates  string            `toml:"templates"`
-	RequestLog string            `toml:"request_log"`
-	ErrorLog   string            `toml:"error_log"`
-	PidFile    string            `toml:"pid_file"`
-	External   map[string]string `toml:"external"`
+	Bind         string            `toml:"bind"`
+	Root         string            `toml:"root"`
+	Timeout      int64             `toml:"timeout"`
+	Templates    string            `toml:"templates"`
+	RequestLog   string            `toml:"request_log"`
+	ErrorLog     string            `toml:"error_log"`
+	PidFile      string            `toml:"pid_file"`
+	ImagePattern string            `toml:"image_pattern"`
+	External     map[string]string `toml:"external"`
 }
 
 func LoadConfig(path string) (*GatewayConfig, error) {
