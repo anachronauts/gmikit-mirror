@@ -98,6 +98,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		resp, err := client.Do(req)
 		if err != nil {
+			// TODO render better
 			w.WriteHeader(http.StatusBadGateway)
 			fmt.Fprintf(w, "Gateway error: %v", err)
 			return
@@ -105,38 +106,80 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer resp.Close()
 
 		switch resp.Status.Class() {
-		case gmikit.StatusClassInput:
-			g.handleInput(w, resp, r)
+		// TODO: handle inputs
+		//case gmikit.StatusClassInput:
+		//	g.handleInput(w, r, resp, req)
 		case gmikit.StatusClassSuccess:
 			g.handleSuccess(w, r, resp, req)
 		case gmikit.StatusClassRedirect:
 			g.handleRedirect(w, r, resp, req)
 		case gmikit.StatusClassTemporaryFailure:
+			g.handleTemporaryFailure(w, r, resp, req)
 		case gmikit.StatusClassPermanentFailure:
+			g.handlePermanentFailure(w, r, resp, req)
 		default:
+			g.handleUnknown(w, r, resp, req)
 		}
 
 	case "POST":
 		r.ParseForm()
 		if q, ok := r.Form["q"]; !ok {
+			// TODO template
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Bad request"))
 		} else {
+			// TODO template
 			w.Header().Add("Location", "?"+q[0])
 			w.WriteHeader(http.StatusFound)
 			w.Write([]byte("Redirecting..."))
 		}
 
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("404 not found"))
+		// TODO template
+		status := http.StatusMethodNotAllowed
+		w.WriteHeader(status)
+		fmt.Fprintf(w, "%d %s", status, http.StatusText(status))
 	}
+}
+
+func (g *Gateway) render(
+	w http.ResponseWriter,
+	template string,
+	httpStatus int,
+	ctx interface{},
+) {
+	w.Header().Add("Content-Type", "text/html")
+	w.WriteHeader(httpStatus)
+	if err := g.template.ExecuteTemplate(w, template, ctx); err != nil {
+		g.logger.Errorw("Failed to execute template", "error", err)
+		// At this point it's kinda too late to recover anything, since we've
+		// probably spewed a bunch of stuff out over the connection.
+	}
+}
+
+func (g *Gateway) showError(
+	w http.ResponseWriter,
+	resp *gmikit.Response,
+	req *gmikit.Request,
+	httpStatus int,
+	message string,
+) {
+	ctx := &ErrorContext{
+		RenderContext: RenderContext{
+			Request:  req,
+			Response: resp,
+		},
+		HTTPStatus: http.StatusBadGateway,
+		Message:    message,
+	}
+	g.render(w, "error.html", ctx.HTTPStatus, ctx)
 }
 
 func (g *Gateway) handleInput(
 	w http.ResponseWriter,
+	r *http.Request,
 	resp *gmikit.Response,
-	req *http.Request,
+	req *gmikit.Request,
 ) {
 	// TODO
 }
@@ -149,12 +192,10 @@ func (g *Gateway) handleSuccess(
 ) {
 	m, _, err := mime.ParseMediaType(resp.Meta)
 	if err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(
-			w, "Gateway error: %s %s: %v",
-			resp.Status,
-			resp.Meta,
-			err,
+		g.showError(
+			w, resp, req,
+			http.StatusBadGateway,
+			fmt.Sprintf("Error parsing mime-type \"%s\": %v", resp.Meta, err),
 		)
 		return
 	}
@@ -166,7 +207,7 @@ func (g *Gateway) handleSuccess(
 	}
 
 	// Build render context
-	rc := NewRenderContext(func(url *url.URL) (*url.URL, string, error) {
+	rc := NewSuccessContext(func(url *url.URL) (*url.URL, string, error) {
 		target, err := g.convertURL(url, r.URL)
 		class := url.Scheme
 		if !url.IsAbs() || url.Host == g.rootURL.Host {
@@ -178,10 +219,7 @@ func (g *Gateway) handleSuccess(
 	rc.Request = req
 	rc.Response = resp
 
-	w.Header().Add("Content-Type", "text/html")
-	if err := g.template.ExecuteTemplate(w, "2x.html", rc); err != nil {
-		g.logger.Errorw("Failed to execute template", "error", err)
-	}
+	g.render(w, "2x.html", http.StatusOK, rc)
 }
 
 func (g *Gateway) handleRedirect(
@@ -192,29 +230,122 @@ func (g *Gateway) handleRedirect(
 ) {
 	to, err := url.Parse(resp.Meta)
 	if err != nil {
-		// TODO template
-		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(w, "Gateway error: bad redirect %v", err)
+		g.showError(
+			w, resp, req,
+			http.StatusBadGateway,
+			fmt.Sprintf("While parsing redirect url: %v", err),
+		)
 		return
 	}
 	next := req.URL.ResolveReference(to)
 	autoRedirect := next.Scheme == "gemini"
 	next, err = g.convertURL(next, r.URL)
 	if err != nil {
-		// TODO template
-		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(w, "Gateway error: bad template %v", err)
+		g.logger.Errorw("Error converting URL",
+			"error", err,
+			"target", next,
+			"request_base", r.URL,
+		)
+		g.showError(
+			w, resp, req,
+			http.StatusInternalServerError,
+			fmt.Sprintf("Error converting URL \"%s\" for redirect: %v",
+				next,
+				err))
 		return
 	}
 
-	if !autoRedirect {
-		// TODO template
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "This page is redirecting you to %s", next)
-		return
+	w.Header().Add("Content-Type", "text/html")
+	if autoRedirect {
+		http.Redirect(w, r, next.String(), http.StatusFound)
+	}
+	ctx := &RedirectContext{
+		RenderContext: RenderContext{
+			Request:  req,
+			Response: resp,
+		},
+		Location: next,
+	}
+	if err := g.template.ExecuteTemplate(w, "3x.html", ctx); err != nil {
+		g.logger.Errorw("Failed to execute template", "error", err)
+		// At this point it's kinda too late to recover anything, since we've
+		// probably spewed a bunch of stuff out over the connection.
+	}
+}
+
+func (g *Gateway) handleTemporaryFailure(
+	w http.ResponseWriter,
+	r *http.Request,
+	resp *gmikit.Response,
+	req *gmikit.Request,
+) {
+	ctx := &ErrorContext{
+		RenderContext: RenderContext{
+			Request:  req,
+			Response: resp,
+		},
 	}
 
-	w.Header().Add("Location", next.String())
-	w.WriteHeader(http.StatusFound)
-	fmt.Fprintf(w, "Redirecting to %s", next)
+	switch resp.Status {
+	default:
+		ctx.HTTPStatus = http.StatusBadGateway
+	case gmikit.StatusServerUnavailable:
+		ctx.HTTPStatus = http.StatusServiceUnavailable
+	case gmikit.StatusCGIError:
+		ctx.HTTPStatus = http.StatusBadGateway
+	case gmikit.StatusProxyError:
+		ctx.HTTPStatus = http.StatusBadGateway
+	case gmikit.StatusSlowDown:
+		w.Header().Add("Retry-After", resp.Meta)
+		ctx.HTTPStatus = http.StatusTooManyRequests
+	}
+
+	g.render(w, "4x.html", ctx.HTTPStatus, ctx)
+}
+
+func (g *Gateway) handlePermanentFailure(
+	w http.ResponseWriter,
+	r *http.Request,
+	resp *gmikit.Response,
+	req *gmikit.Request,
+) {
+	ctx := &ErrorContext{
+		RenderContext: RenderContext{
+			Request:  req,
+			Response: resp,
+		},
+	}
+
+	switch resp.Status {
+	default:
+		ctx.HTTPStatus = http.StatusForbidden
+	case gmikit.StatusNotFound:
+		ctx.HTTPStatus = http.StatusNotFound
+	case gmikit.StatusGone:
+		ctx.HTTPStatus = http.StatusGone
+	case gmikit.StatusProxyRequestRefused:
+		ctx.HTTPStatus = http.StatusForbidden
+	case gmikit.StatusBadRequest:
+		ctx.HTTPStatus = http.StatusBadGateway
+		ctx.Message = "Bad request (this might be the fault of the server)"
+		g.logger.Errorw("Sent bad request", "meta", resp.Meta)
+	}
+
+	g.render(w, "5x.html", ctx.HTTPStatus, ctx)
+}
+
+func (g *Gateway) handleUnknown(
+	w http.ResponseWriter,
+	r *http.Request,
+	resp *gmikit.Response,
+	req *gmikit.Request,
+) {
+	ctx := &ErrorContext{
+		RenderContext: RenderContext{
+			Request:  req,
+			Response: resp,
+		},
+		HTTPStatus: http.StatusNotImplemented,
+	}
+	g.render(w, "unknown.html", ctx.HTTPStatus, ctx)
 }

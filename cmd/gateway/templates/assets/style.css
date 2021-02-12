@@ -117,29 +117,21 @@ details a::before {
 	display: none;
 }
 
-details table {
+table.response {
 	margin-top: 1rem;
 }
 
-details td {
+table.response td {
 	padding: 0 0.25rem;
 }
 
-details td:nth-child(1) {
+table.response td:nth-child(1) {
 	font-weight: bold;
 	text-align: right
 }
 
-details td:nth-child(2) {
+table.response td:nth-child(2) {
 	font-family: monospace;
-}
-
-dl dt {
-	font-weight: bold;
-}
-
-dl dt:not(:first-child) {
-	margin-top: 0.5rem;
 }
 
 @media(prefers-color-scheme:dark) {

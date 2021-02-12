@@ -2,6 +2,8 @@ package main
 
 import (
 	"html/template"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -15,55 +17,33 @@ var userPatterns = []*regexp.Regexp{
 }
 
 type RenderContext struct {
+	Request  *gmikit.Request
+	Response *gmikit.Response
+	style    *Style
+}
+
+type SuccessContext struct {
+	RenderContext
 	gmikit.HtmlWriter
-	Request     *gmikit.Request
-	Response    *gmikit.Response
 	Title       string
 	titleLevel  int
 	bodyBuilder *strings.Builder
-	style       *Style
+}
+
+type RedirectContext struct {
+	RenderContext
+	Location *url.URL
+}
+
+type ErrorContext struct {
+	RenderContext
+	HTTPStatus int
+	Message    string
 }
 
 type Style struct {
 	Light *theme.Theme
 	Dark  *theme.Theme
-}
-
-func NewRenderContext(rewriter gmikit.UrlRewriter) *RenderContext {
-	ctx := &RenderContext{
-		titleLevel:  4, // gemini only supports 3 levels
-		bodyBuilder: &strings.Builder{},
-	}
-	ctx.HtmlWriter = *gmikit.NewHtmlWriter(ctx.bodyBuilder, rewriter)
-	return ctx
-}
-
-func (ctx *RenderContext) Body() template.HTML {
-	return template.HTML(ctx.bodyBuilder.String())
-}
-
-func (ctx *RenderContext) Heading1(text string) error {
-	if ctx.titleLevel > 1 {
-		ctx.Title = text
-		ctx.titleLevel = 1
-	}
-	return ctx.HtmlWriter.Heading1(text)
-}
-
-func (ctx *RenderContext) Heading2(text string) error {
-	if ctx.titleLevel > 2 {
-		ctx.Title = text
-		ctx.titleLevel = 2
-	}
-	return ctx.HtmlWriter.Heading2(text)
-}
-
-func (ctx *RenderContext) Heading3(text string) error {
-	if ctx.titleLevel > 3 {
-		ctx.Title = text
-		ctx.titleLevel = 3
-	}
-	return ctx.HtmlWriter.Heading3(text)
 }
 
 func (ctx *RenderContext) Site() string {
@@ -88,4 +68,45 @@ func (ctx *RenderContext) Style() *Style {
 		}
 	}
 	return ctx.style
+}
+
+func NewSuccessContext(rewriter gmikit.UrlRewriter) *SuccessContext {
+	ctx := &SuccessContext{
+		titleLevel:  4, // gemini only supports 3 levels
+		bodyBuilder: &strings.Builder{},
+	}
+	ctx.HtmlWriter = *gmikit.NewHtmlWriter(ctx.bodyBuilder, rewriter)
+	return ctx
+}
+
+func (ctx *SuccessContext) Body() template.HTML {
+	return template.HTML(ctx.bodyBuilder.String())
+}
+
+func (ctx *SuccessContext) Heading1(text string) error {
+	if ctx.titleLevel > 1 {
+		ctx.Title = text
+		ctx.titleLevel = 1
+	}
+	return ctx.HtmlWriter.Heading1(text)
+}
+
+func (ctx *SuccessContext) Heading2(text string) error {
+	if ctx.titleLevel > 2 {
+		ctx.Title = text
+		ctx.titleLevel = 2
+	}
+	return ctx.HtmlWriter.Heading2(text)
+}
+
+func (ctx *SuccessContext) Heading3(text string) error {
+	if ctx.titleLevel > 3 {
+		ctx.Title = text
+		ctx.titleLevel = 3
+	}
+	return ctx.HtmlWriter.Heading3(text)
+}
+
+func (ctx *ErrorContext) HTTPFriendly() string {
+	return http.StatusText(ctx.HTTPStatus)
 }

@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+{{ template "style.css" .Style }}
+</style>
+<title>{{ .Response.Status }} - {{ .Site }}</title>
+</head>
+<body>
+<article>
+<h1>{{ .HTTPStatus }} {{ .HTTPFriendly }}</h1>
+<p>
+The response returned by the Gemini server for the following request cannot be handled by this proxy. If appropriate, retry the request with a Gemini client.
+
+</p>
+<a href="{{ .Request.URL | safeURL }}">{{ .Request.URL }}</a><br />
+<table class="response">
+    <tr>
+        <td>Status code</td>
+        <td>{{ .Response.Status }}</td>
+    </tr>
+    <tr>
+        <td>Meta</td>
+        <td>{{ .Response.Meta }}</td>
+    </tr>
+</table>
+<p>{{ .Message }}</p>
+</article>
+</body>
+</html>

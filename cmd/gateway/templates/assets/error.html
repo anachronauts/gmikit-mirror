@@ -6,16 +6,17 @@
 <style>
 {{ template "style.css" .Style }}
 </style>
-<title>{{ .Response.Status }} - {{ .Site }}</title>
+<title>Server Error - {{ .Site }}</title>
 </head>
 <body>
 <article>
 <h1>{{ .HTTPStatus }} {{ .HTTPFriendly }}</h1>
 <p>
-A temporary error was returned by the Gemini server in response to the following request:
+An error occurred while processing the following request:
 
 </p>
 <a href="{{ .Request.URL | safeURL }}">{{ .Request.URL }}</a><br />
+{{ if .Response }}
 <table class="response">
     <tr>
         <td>Status code</td>
@@ -26,6 +27,7 @@ A temporary error was returned by the Gemini server in response to the following
         <td>{{ .Response.Meta }}</td>
     </tr>
 </table>
+{{ end }}
 <p>{{ .Message }}</p>
 </article>
 </body>
