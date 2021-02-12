@@ -21,16 +21,7 @@ The redirect was received in response to the following request:
 
 </p>
 <a href="{{ .Request.URL | safeURL }}">{{ .Request.URL }}</a><br />
-<table class="response">
-    <tr>
-        <td>Status code</td>
-        <td>{{ .Response.Status }}</td>
-    </tr>
-    <tr>
-        <td>Meta</td>
-        <td>{{ .Response.Meta }}</td>
-    </tr>
-</table>
+{{ template "response.html" . }}
 </article>
 </body>
 </html>

@@ -1,14 +1,17 @@
 package main
 
 import (
+	"encoding/base64"
 	"html/template"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"anachronauts.club/repos/gmikit"
 	"anachronauts.club/repos/gmikit/cmd/gateway/theme"
+	"golang.org/x/crypto/blake2b"
 )
 
 var userPatterns = []*regexp.Regexp{
@@ -68,6 +71,23 @@ func (ctx *RenderContext) Style() *Style {
 		}
 	}
 	return ctx.style
+}
+
+func (ctx *RenderContext) TLSCommonName() string {
+	return ctx.Response.TLS.PeerCertificates[0].Issuer.CommonName
+}
+
+func (ctx *RenderContext) TLSFingerprint() string {
+	fingerprint := blake2b.Sum256(ctx.Response.TLS.PeerCertificates[0].Raw)
+	return base64.StdEncoding.EncodeToString(fingerprint[:])
+}
+
+func (ctx *RenderContext) TLSNotBefore() time.Time {
+	return ctx.Response.TLS.PeerCertificates[0].NotBefore
+}
+
+func (ctx *RenderContext) TLSNotAfter() time.Time {
+	return ctx.Response.TLS.PeerCertificates[0].NotAfter
 }
 
 func NewSuccessContext(rewriter gmikit.UrlRewriter) *SuccessContext {

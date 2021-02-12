@@ -16,16 +16,7 @@ A temporary error was returned by the Gemini server in response to the following
 
 </p>
 <a href="{{ .Request.URL | safeURL }}">{{ .Request.URL }}</a><br />
-<table class="response">
-    <tr>
-        <td>Status code</td>
-        <td>{{ .Response.Status }}</td>
-    </tr>
-    <tr>
-        <td>Meta</td>
-        <td>{{ .Response.Meta }}</td>
-    </tr>
-</table>
+{{ template "response.html" . }}
 <p>{{ .Message }}</p>
 </article>
 </body>

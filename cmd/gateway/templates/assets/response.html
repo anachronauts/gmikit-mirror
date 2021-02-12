@@ -1,0 +1,26 @@
+<table class="response">
+    <tr>
+        <td>Status code</td>
+        <td>{{ .Response.Status }}</td>
+    </tr>
+    <tr>
+        <td>Meta</td>
+        <td>{{ .Response.Meta }}</td>
+    </tr>
+    <tr>
+        <td>Certificate Common Name</td>
+        <td>{{ .TLSCommonName }}</td>
+    </tr>
+    <tr>
+        <td>Certificate Fingerprint (BLAKE2b-256)</td>
+        <td>{{ .TLSFingerprint }}</td>
+    </tr>
+    <tr>
+        <td>Certificate Not Before</td>
+        <td>{{ .TLSNotBefore }}</td>
+    </tr>
+    <tr>
+        <td>Certificate Not After</td>
+        <td>{{ .TLSNotAfter }}</td>
+    </tr>
+</table>

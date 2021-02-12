@@ -17,16 +17,7 @@ An error occurred while processing the following request:
 </p>
 <a href="{{ .Request.URL | safeURL }}">{{ .Request.URL }}</a><br />
 {{ if .Response }}
-<table class="response">
-    <tr>
-        <td>Status code</td>
-        <td>{{ .Response.Status }}</td>
-    </tr>
-    <tr>
-        <td>Meta</td>
-        <td>{{ .Response.Meta }}</td>
-    </tr>
-</table>
+{{ template "response.html" . }}
 {{ end }}
 <p>{{ .Message }}</p>
 </article>
