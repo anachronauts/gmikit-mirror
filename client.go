@@ -16,7 +16,9 @@ import (
 
 var (
 	ErrInvalidURL      = errors.New("gemini: invalid URL")
-	ErrInvalidResponse = errors.New("gemini: invalid response")
+	ErrInvalidStatus   = errors.New("gemini: invalid status")
+	ErrMetaTooLong     = errors.New("gemini: meta too long")
+	ErrMalformedHeader = errors.New("gemini: malformed header")
 )
 
 var crlf = []byte("\r\n")
@@ -155,14 +157,14 @@ func ReadResponse(rc io.ReadCloser) (*Response, error) {
 		return nil, err
 	}
 	if status < 10 || status >= 70 {
-		return nil, ErrInvalidResponse
+		return nil, ErrInvalidStatus
 	}
 	resp.Status = Status(status)
 
 	if b, err := br.ReadByte(); err != nil {
 		return nil, err
 	} else if b != ' ' {
-		return nil, ErrInvalidResponse
+		return nil, ErrMalformedHeader
 	}
 
 	meta, err := br.ReadString('\r')
@@ -171,7 +173,7 @@ func ReadResponse(rc io.ReadCloser) (*Response, error) {
 	}
 	meta = meta[:len(meta)-1]
 	if len(meta) > 1024 {
-		return nil, ErrInvalidResponse
+		return nil, ErrMetaTooLong
 	}
 	if resp.Status.Class() == StatusClassSuccess && meta == "" {
 		meta = "text/gemini; charset=utf-8"
@@ -181,7 +183,7 @@ func ReadResponse(rc io.ReadCloser) (*Response, error) {
 	if b, err := br.ReadByte(); err != nil {
 		return nil, err
 	} else if b != '\n' {
-		return nil, ErrInvalidResponse
+		return nil, ErrMalformedHeader
 	}
 
 	if resp.Status.Class() != StatusClassSuccess {
