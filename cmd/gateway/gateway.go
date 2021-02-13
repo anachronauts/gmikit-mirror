@@ -220,7 +220,11 @@ func (g *Gateway) handleSuccess(
 			target, err := g.convertURL(url, r.URL)
 			class := url.Scheme
 			if !url.IsAbs() || url.Host == g.rootURL.Host {
-				class = "local"
+				if url.Scheme == "" {
+					class = "local gemini"
+				} else {
+					class = fmt.Sprintf("local %s", url.Scheme)
+				}
 			}
 			return target, class, err
 		})

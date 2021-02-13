@@ -89,6 +89,22 @@ a.local::before {
 	content: '→';
 }
 
+a.gopher {
+	color: {{ .Light.GopherLinkText }};
+}
+
+a.gopher:hover {
+	color: {{ .Light.GopherLinkTextHover }};
+}
+
+a.gopher::before {
+	color: {{ .Light.GopherLinkIcon }};
+}
+
+a.gopher:visited::before {
+	color: {{ .Light.GopherLinkIconVisited }};
+}
+
 a.http, a.https {
 	color: {{ .Light.HypertextLinkText }};
 }
@@ -186,6 +202,22 @@ table.response td:nth-child(2) {
 
 	a:visited::before {
 		color: {{ .Dark.LinkIconVisited }};
+	}
+
+	a.gopher {
+		color: {{ .Dark.GopherLinkText }};
+	}
+
+	a.gopher:hover {
+		color: {{ .Dark.GopherLinkTextHover }};
+	}
+
+	a.gopher::before {
+		color: {{ .Dark.GopherLinkIcon }};
+	}
+
+	a.gopher:visited::before {
+		color: {{ .Dark.GopherLinkIconVisited }};
 	}
 
 	a.http, a.https {
