@@ -37,21 +37,17 @@ Text, more text.
 
 	expected := `<h1>Heading 1</h1>
 <p>
-
 Text, more text.
 
 </p>
 <a href="hello.gmi">Hello!</a><br/>
 <p>
-
 </p>
-<blockquote>
-One
+<blockquote>One
 Two
 Three
 </blockquote>
 <p>
-
 </p>
 <div aria-label="a">
 <pre aria-hidden="true" alt="a">

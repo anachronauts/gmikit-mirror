@@ -1,4 +1,4 @@
-.PHONY: all install clean FORCE
+.PHONY: all check install clean FORCE
 
 PREFIX := /usr/local
 SYSCONFDIR := $(PREFIX)/etc
@@ -9,6 +9,9 @@ BINPREFIX := gmikit-
 EXTRAGOLDFLAGS :=
 
 all: convert gateway get
+
+check:
+	go test
 
 FORCE:
 

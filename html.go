@@ -85,8 +85,8 @@ func (h *HtmlWriter) Text(text string) error {
 
 var anchor = template.Must(
 	template.New("anchor").Parse(
-		"<a href=\"{{.Href}}\" " +
-			"{{ if .Class -}} class=\"{{.Class}}\" {{- end }}>" +
+		"<a href=\"{{.Href}}\"" +
+			"{{ if .Class }} class=\"{{.Class}}\" {{- end }}>" +
 			"{{.Text}}</a><br/>\n"))
 
 func (h *HtmlWriter) Link(target *url.URL, friendlyName string) error {
@@ -131,7 +131,7 @@ func (h *HtmlWriter) PreformattingToggle(altText string) error {
 		return err
 	}
 
-	if elem == Pre {
+	if elem == Pre || elem == AltPre {
 		return nil
 	}
 
