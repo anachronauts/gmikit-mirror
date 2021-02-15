@@ -1,7 +1,0 @@
-./stage/usr/local/bin type=dir mode=0755
-./stage/usr/local/sbin type=dir mode=0755
-./stage/usr/local/etc/gmikit type=dir mode=0755
-./stage/usr/local/bin/gmikit-convert type=file mode=0755 size=5110436
-./stage/usr/local/sbin/gmikit-gateway type=file mode=0755 size=11101353
-./stage/usr/local/bin/gmikit-get type=file mode=0755 size=6233338
-./stage/usr/local/etc/gmikit/gateway.conf.sample type=file mode=0644 size=1088

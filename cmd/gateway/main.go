@@ -19,11 +19,13 @@ import (
 )
 
 var confDir string = "/usr/local/etc/gmikit"
+var dataDir string = "/usr/local/share/gmikit"
 var configFile *string = flag.StringP(
 	"config", "c",
 	path.Join(confDir, "gateway.conf"),
 	"Path to config",
 )
+var templateDir = path.Join(dataDir, "templates")
 
 func isProcessRunning(pid int) bool {
 	// Always works on UNIX

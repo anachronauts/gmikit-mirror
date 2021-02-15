@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"anachronauts.club/repos/gmikit"
-	"anachronauts.club/repos/gmikit/cmd/gateway/templates"
+	"github.com/shurcooL/httpfs/html/vfstemplate"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +49,7 @@ func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, err
 		g.externals[k] = t
 	}
 
-	g.template, err = templates.Load(config.Templates)
+	g.template, err = loadTemplates(config.Templates)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +60,15 @@ func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, err
 	}
 
 	return g, nil
+}
+
+func loadTemplates(path string) (*ht.Template, error) {
+	t := ht.New("t").Funcs(ht.FuncMap{
+		"safeURL": func(url *url.URL) ht.URL {
+			return ht.URL(url.String())
+		},
+	})
+	return vfstemplate.ParseGlob(http.Dir(path), t, "*")
 }
 
 func (g *Gateway) convertURL(

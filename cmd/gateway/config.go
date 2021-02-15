@@ -30,8 +30,9 @@ func LoadConfig(path string) (*GatewayConfig, error) {
 
 	dec := toml.NewDecoder(configFile)
 	config := &GatewayConfig{
-		Bind:    ":8080",
-		Timeout: 30000,
+		Bind:      ":8080",
+		Timeout:   30000,
+		Templates: templateDir,
 	}
 	if err := dec.Decode(config); err != nil {
 		return nil, err

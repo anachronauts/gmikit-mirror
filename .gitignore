@@ -2,6 +2,7 @@ stage/
 *_vfsdata.go
 *.txz
 meta.conf
+/install.log
 /convert
 /gateway
 /get
