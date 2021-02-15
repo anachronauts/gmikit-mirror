@@ -7,13 +7,13 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 	tt "text/template"
 	"time"
 
 	"anachronauts.club/repos/gmikit"
-	"github.com/shurcooL/httpfs/html/vfstemplate"
 	"go.uber.org/zap"
 )
 
@@ -62,13 +62,12 @@ func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, err
 	return g, nil
 }
 
-func loadTemplates(path string) (*ht.Template, error) {
-	t := ht.New("t").Funcs(ht.FuncMap{
+func loadTemplates(templateDir string) (*ht.Template, error) {
+	return ht.New("t").Funcs(ht.FuncMap{
 		"safeURL": func(url *url.URL) ht.URL {
 			return ht.URL(url.String())
 		},
-	})
-	return vfstemplate.ParseGlob(http.Dir(path), t, "*")
+	}).ParseGlob(path.Join(templateDir, "*"))
 }
 
 func (g *Gateway) convertURL(
