@@ -14,12 +14,11 @@ import (
 	"time"
 
 	"anachronauts.club/repos/gmikit"
-	"go.uber.org/zap"
 )
 
 type Gateway struct {
 	config       *GatewayConfig
-	logger       *zap.SugaredLogger
+	logger       *SplitLogger
 	template     *ht.Template
 	rootURL      *url.URL
 	timeout      time.Duration
@@ -27,7 +26,7 @@ type Gateway struct {
 	externals    map[string]*tt.Template
 }
 
-func NewGateway(logger *zap.SugaredLogger, config *GatewayConfig) (*Gateway, error) {
+func NewGateway(logger *SplitLogger, config *GatewayConfig) (*Gateway, error) {
 	var err error
 	g := &Gateway{
 		config:    config,
@@ -166,7 +165,7 @@ func (g *Gateway) render(
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(httpStatus)
 	if err := g.template.ExecuteTemplate(w, template, ctx); err != nil {
-		g.logger.Errorw("Failed to execute template", "error", err)
+		g.logger.Error("Failed to execute template:", err)
 		// At this point it's kinda too late to recover anything, since we've
 		// probably spewed a bunch of stuff out over the connection.
 	}
@@ -262,11 +261,8 @@ func (g *Gateway) handleRedirect(
 	autoRedirect := next.Scheme == "gemini"
 	next, err = g.convertURL(next, r.URL)
 	if err != nil {
-		g.logger.Errorw("Error converting URL",
-			"error", err,
-			"target", next,
-			"request_base", r.URL,
-		)
+		g.logger.Errorf(
+			"Error converting URL (%s, %s): %v", next, r.URL, err)
 		g.showError(
 			w, resp, req,
 			http.StatusInternalServerError,
@@ -288,7 +284,7 @@ func (g *Gateway) handleRedirect(
 		Location: next,
 	}
 	if err := g.template.ExecuteTemplate(w, "3x.html", ctx); err != nil {
-		g.logger.Errorw("Failed to execute template", "error", err)
+		g.logger.Error("Failed to execute template:", err)
 		// At this point it's kinda too late to recover anything, since we've
 		// probably spewed a bunch of stuff out over the connection.
 	}
@@ -349,7 +345,7 @@ func (g *Gateway) handlePermanentFailure(
 	case gmikit.StatusBadRequest:
 		ctx.HTTPStatus = http.StatusBadGateway
 		ctx.Message = "Bad request (this might be the fault of the server)"
-		g.logger.Errorw("Sent bad request", "meta", resp.Meta)
+		g.logger.Errorf("Sent bad request, meta=%s", resp.Meta)
 	}
 
 	g.render(w, "5x.html", ctx.HTTPStatus, ctx)

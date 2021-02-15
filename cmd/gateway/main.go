@@ -15,7 +15,6 @@ import (
 
 	flag "github.com/spf13/pflag"
 	"github.com/urfave/negroni"
-	"go.uber.org/zap"
 )
 
 var confDir string = "/usr/local/etc/gmikit"
@@ -62,32 +61,6 @@ func WritePidFile(path string) error {
 	return ioutil.WriteFile(path, []byte(strconv.Itoa(os.Getpid())), 0o644)
 }
 
-type RequestLogger struct {
-	logger *zap.SugaredLogger
-}
-
-func NewRequestLogger(logger *zap.SugaredLogger) *RequestLogger {
-	return &RequestLogger{logger: logger}
-}
-
-func (rl *RequestLogger) ServeHTTP(
-	w http.ResponseWriter,
-	r *http.Request,
-	next http.HandlerFunc,
-) {
-	nrw := negroni.NewResponseWriter(w)
-	start := time.Now()
-	next(nrw, r)
-	elapsed := time.Since(start)
-	rl.logger.Infow("Request",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"elapsed", elapsed,
-		"status", nrw.Status(),
-		"size", nrw.Size(),
-	)
-}
-
 func main() {
 	flag.Parse()
 
@@ -98,10 +71,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create logger infrastructure
-	core, reopen, err := config.MakeLogCore()
+	// Create logger
+	logger, err := config.MakeLoggers()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating logger: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error creating loggers: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -112,13 +85,9 @@ func main() {
 		for {
 			<-sighup
 			fmt.Fprintln(os.Stderr, "Got SIGHUP, reopening logs")
-			reopen()
+			logger.Reopen()
 		}
 	})()
-
-	// Create logger
-	logger := zap.New(core).Sugar()
-	defer logger.Sync()
 
 	// Start handling signals, then plonk down a PID file
 	done := make(chan os.Signal, 1)
@@ -142,7 +111,7 @@ func main() {
 
 	// Create middleware
 	n := negroni.New()
-	n.Use(NewRequestLogger(logger))
+	n.Use(logger)
 	n.UseHandler(mux)
 
 	// Create and start server
@@ -155,10 +124,10 @@ func main() {
 			logger.Fatal(err)
 		}
 	})()
-	logger.Infow("Started HTTP server", "addr", config.Bind)
+	logger.Request("Started HTTP server on", config.Bind)
 
 	<-done
-	logger.Info("Stopping HTTP server")
+	logger.Request("Stopping HTTP server")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer (func() {
 		// extra handling here
@@ -166,7 +135,7 @@ func main() {
 	})()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Fatalw("Server shutdown failed", "error", err)
+		logger.Fatal("Server shutdown failed:", err)
 	}
-	logger.Info("Stopped HTTP server ok")
+	logger.Request("Stopped HTTP server ok")
 }

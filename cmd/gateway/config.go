@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/client9/reopen"
 	"github.com/pelletier/go-toml"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"github.com/urfave/negroni"
 )
 
 type GatewayConfig struct {
@@ -19,6 +21,12 @@ type GatewayConfig struct {
 	PidFile      string            `toml:"pid_file"`
 	ImagePattern string            `toml:"image_pattern"`
 	External     map[string]string `toml:"external"`
+}
+
+type SplitLogger struct {
+	requestLog *log.Logger
+	errorLog   *log.Logger
+	reopeners  []reopen.Reopener
 }
 
 func LoadConfig(path string) (*GatewayConfig, error) {
@@ -41,127 +49,94 @@ func LoadConfig(path string) (*GatewayConfig, error) {
 	return config, nil
 }
 
-func (cfg *GatewayConfig) MakeLogCore() (
-	zapcore.Core,
-	func(),
+func (cfg *GatewayConfig) MakeLoggers() (
+	*SplitLogger,
 	error,
 ) {
-	fileEncoder := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
-	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+	loggers := &SplitLogger{}
 
-	var core zapcore.Core
-	var reopeners []reopen.Reopener
 	var err error
-	if cfg.RequestLog == cfg.ErrorLog {
-		core, reopeners, err = cfg.makeUnifiedLogCore(fileEncoder, consoleEncoder)
-	} else {
-		core, reopeners, err = cfg.makeSplitLogCore(fileEncoder, consoleEncoder)
-	}
+	loggers.requestLog, err = loggers.makeRotatableLogger(cfg.RequestLog)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	reopen := func() {
-		for _, re := range reopeners {
-			re.Reopen()
+
+	if cfg.RequestLog == cfg.ErrorLog {
+		loggers.errorLog = loggers.requestLog
+	} else {
+		loggers.errorLog, err = loggers.makeRotatableLogger(cfg.ErrorLog)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return core, reopen, nil
+
+	return loggers, nil
 }
 
-func (cfg *GatewayConfig) makeUnifiedLogCore(
-	fileEncoder zapcore.Encoder,
-	consoleEncoder zapcore.Encoder,
-) (
-	zapcore.Core,
-	[]reopen.Reopener,
-	error,
+func (logger *SplitLogger) Request(v ...interface{}) {
+	logger.requestLog.Print(v...)
+}
+
+func (logger *SplitLogger) Error(v ...interface{}) {
+	logger.errorLog.Print(v...)
+}
+
+func (logger *SplitLogger) Requestf(format string, v ...interface{}) {
+	logger.requestLog.Printf(format, v...)
+}
+
+func (logger *SplitLogger) Errorf(format string, v ...interface{}) {
+	logger.errorLog.Printf(format, v...)
+}
+
+func (logger *SplitLogger) Requestln(v ...interface{}) {
+	logger.requestLog.Println(v...)
+}
+
+func (logger *SplitLogger) Errorln(v ...interface{}) {
+	logger.errorLog.Println(v...)
+}
+
+func (logger *SplitLogger) Fatal(v ...interface{}) {
+	logger.errorLog.Fatal(v...)
+}
+
+func (logger *SplitLogger) Reopen() error {
+	for _, ro := range logger.reopeners {
+		err := ro.Reopen()
+		if err != nil {
+			logger.Error(err)
+		}
+	}
+	return nil
+}
+
+func (logger *SplitLogger) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+	next http.HandlerFunc,
 ) {
-	anyLevel := zap.LevelEnablerFunc(func(zapcore.Level) bool { return true })
-	reopeners := make([]reopen.Reopener, 0)
-	core, re, err := cfg.makeRotatableLogCore(
-		cfg.RequestLog,
-		anyLevel,
-		fileEncoder,
-		consoleEncoder,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	if re != nil {
-		reopeners = append(reopeners, re)
-	}
-	return core, reopeners, nil
+	nrw := negroni.NewResponseWriter(w)
+	start := time.Now()
+	next(nrw, r)
+	elapsed := time.Since(start)
+	logger.requestLog.Printf("%s %s %d %d %v",
+		r.Method, r.URL.Path, nrw.Status(), nrw.Size(), elapsed)
 }
 
-func (cfg *GatewayConfig) makeSplitLogCore(
-	fileEncoder zapcore.Encoder,
-	consoleEncoder zapcore.Encoder,
-) (
-	zapcore.Core,
-	[]reopen.Reopener,
-	error,
-) {
-	reopeners := make([]reopen.Reopener, 0)
-
-	errorPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= zapcore.ErrorLevel
-	})
-	errorCore, re, err := cfg.makeRotatableLogCore(
-		cfg.ErrorLog,
-		errorPriority,
-		fileEncoder,
-		consoleEncoder,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	if re != nil {
-		reopeners = append(reopeners, re)
-	}
-
-	requestPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl < zapcore.ErrorLevel
-	})
-	requestCore, re, err := cfg.makeRotatableLogCore(
-		cfg.RequestLog,
-		requestPriority,
-		fileEncoder,
-		consoleEncoder,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	if re != nil {
-		reopeners = append(reopeners, re)
-	}
-
-	core := zapcore.NewTee(errorCore, requestCore)
-	return core, reopeners, nil
-}
-
-func (cfg *GatewayConfig) makeRotatableLogCore(
-	path string,
-	enabler zapcore.LevelEnabler,
-	fileEncoder zapcore.Encoder,
-	consoleEncoder zapcore.Encoder,
-) (
-	zapcore.Core,
-	reopen.Reopener,
+func (logger *SplitLogger) makeRotatableLogger(path string) (
+	*log.Logger,
 	error,
 ) {
 	if path != "" {
 		// Logging to file
 		file, err := reopen.NewFileWriter(path)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		ws := zapcore.AddSync(file)
-		core := zapcore.NewCore(fileEncoder, ws, enabler)
-		return core, file, nil
+		logger.reopeners = append(logger.reopeners, file)
+		return log.New(file, "", log.LstdFlags), nil
 	} else {
-		// Logging to stderr
-		ws := zapcore.Lock(os.Stderr)
-		core := zapcore.NewCore(consoleEncoder, ws, enabler)
-		return core, nil, nil
+		return log.New(os.Stderr, "", log.LstdFlags), nil
 	}
 }
