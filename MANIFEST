@@ -1,0 +1,9 @@
+name gmikit
+version 0.1.0-0
+origin anachronauts/gmikit
+comment Gemini Tools
+desc = <<EOD
+	Gemini tools
+EOD
+www https://anachronauts.club
+maintainer sage@anachronauts.club
