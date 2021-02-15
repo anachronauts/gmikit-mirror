@@ -1,8 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
+	"encoding/hex"
 	"io"
 	"log"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 
 	"anachronauts.club/repos/gmikit"
 	flag "github.com/spf13/pflag"
-	"golang.org/x/crypto/blake2b"
 )
 
 var output *string = flag.StringP("output", "o", "-", "Output path")
@@ -38,8 +38,8 @@ func main() {
 
 	client := &gmikit.Client{
 		TrustCertificate: func(hostname string, cert *x509.Certificate) error {
-			fingerprint := blake2b.Sum512(cert.Raw)
-			log.Println("Fingerprint", hostname, base64.StdEncoding.EncodeToString(fingerprint[:]))
+			fingerprint := sha256.Sum256(cert.Raw)
+			log.Println("Fingerprint", hostname, hex.EncodeToString(fingerprint[:]))
 			return nil
 		},
 	}

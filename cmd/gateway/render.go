@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"html/template"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 
 	"anachronauts.club/repos/gmikit"
 	"anachronauts.club/repos/gmikit/cmd/gateway/theme"
-	"golang.org/x/crypto/blake2b"
 )
 
 var userPatterns = []*regexp.Regexp{
@@ -79,7 +79,7 @@ func (ctx *RenderContext) TLSCommonName() string {
 }
 
 func (ctx *RenderContext) TLSFingerprint() string {
-	fingerprint := blake2b.Sum256(ctx.Response.TLS.PeerCertificates[0].Raw)
+	fingerprint := sha256.Sum256(ctx.Response.TLS.PeerCertificates[0].Raw)
 	return base64.StdEncoding.EncodeToString(fingerprint[:])
 }
 
