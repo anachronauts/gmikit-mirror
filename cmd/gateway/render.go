@@ -154,7 +154,7 @@ func (ctx *SuccessContext) Link(target *url.URL, friendlyName string) error {
 			}
 		}
 
-		if strings.HasPrefix("local") {
+		if strings.HasPrefix(class, "local") {
 			return image.Execute(ctx, struct {
 				Href  *url.URL
 				Text  string
